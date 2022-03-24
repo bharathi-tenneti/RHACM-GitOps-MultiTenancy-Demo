@@ -171,7 +171,6 @@ The following screenshots depict that blue group users can see only blue applica
 
 ![image](https://user-images.githubusercontent.com/41969005/159999168-6a3afc06-ed09-4297-9b4b-7f6083d422b2.png)
 
-```
 
 ### Separate ArgoCD console
 
