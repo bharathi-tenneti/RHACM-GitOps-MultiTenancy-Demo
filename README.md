@@ -1,6 +1,9 @@
 # Multi-tenancy model example with Red Hat Advanced Cluster Management and OpenShift GitOps operator
 
 
+![image](https://user-images.githubusercontent.com/41969005/159989841-95b5dce8-b678-4cc1-8020-ae9d50a42089.png)
+
+
 ## Cluster environment
 - ACM hub cluster
 - Three managed clusters: `bluecluster1`, `bluecluster2`, `redcluster`
