@@ -2,6 +2,8 @@
 
 This repo provides an exampl to configure cluster-as-a-service multi-tenancy model using Red Hat Advanced Cluster Management and OpenShift GitOps operator.
 
+
+
 ![image](https://user-images.githubusercontent.com/41969005/159989841-95b5dce8-b678-4cc1-8020-ae9d50a42089.png)
 
 
@@ -117,4 +119,45 @@ data:
 
 ```
     oc get route redargocd-server -n redargocd
+```
+
+
+## Verifications
+
+Now everything is set up! Let's try to create some applications with different users and see what happens. The `./ApplicationSets/blueappset.yaml` creates an ApplicationSet that deploys `https://github.com/rokej/BlueApplications/tree/main/mobileApplication` application to those two remote blue clusters.
+
+
+```
+    - clusterDecisionResource:
+        configMapRef: acm-placement
+        labelSelector:
+          matchLabels:
+            cluster.open-cluster-management.io/placement: blue-placement
+```
+
+This cluster decision section of the application set uses existing `blue-placement` that was created by step 14. When step 14 creates a `Placement` CR, the placement controller evaluates and creates a `PlacementDecision` CR with `cluster.open-cluster-management.io/placement: blue-placement` label. `PlacementDecision` contains a list of selected clusters.
+
+
+### As a viewer
+
+If `oc apply -f ./ApplicationSets` to try to create application sets to deploy applications, you should see errors like below because viewers have read-only view access to the application namespace `blueargocd` or `redargocd`.
+
+```
+Error from server (Forbidden): error when creating "ApplicationSets/blueappset.yaml": applicationsets.argoproj.io is forbidden: User "blueviewer1" cannot create resource "applicationsets" in API group "argoproj.io" in the namespace "blueargocd"
+Error from server (Forbidden): error when retrieving current configuration of:
+Resource: "argoproj.io/v1alpha1, Resource=applicationsets", GroupVersionKind: "argoproj.io/v1alpha1, Kind=ApplicationSet"
+Name: "galaga-application-set", Namespace: "redargocd"
+from server for: "ApplicationSets/redappset.yaml": applicationsets.argoproj.io "galaga-application-set" is forbidden: User "blueviewer1" cannot get resource "applicationsets" in API group "argoproj.io" in the namespace "redargocd"
+```
+
+### As a blue SRE user
+
+If `oc apply -f ./ApplicationSets` to try to create application sets to deploy applications, you should see output like below because the bluw SRE user has admin access to `blueargocd` applicaiton namespace but no access to `redargocd` application namespace.
+
+```
+applicationset.argoproj.io/mobile-application-set created
+Error from server (Forbidden): error when retrieving current configuration of:
+Resource: "argoproj.io/v1alpha1, Resource=applicationsets", GroupVersionKind: "argoproj.io/v1alpha1, Kind=ApplicationSet"
+Name: "galaga-application-set", Namespace: "redargocd"
+from server for: "ApplicationSets/redappset.yaml": applicationsets.argoproj.io "galaga-application-set" is forbidden: User "bluesre1" cannot get resource "applicationsets" in API group "argoproj.io" in the namespace "redargocd"
 ```
