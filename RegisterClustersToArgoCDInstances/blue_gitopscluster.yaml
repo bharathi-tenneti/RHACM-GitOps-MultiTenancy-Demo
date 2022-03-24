@@ -1,0 +1,31 @@
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: ManagedClusterSetBinding
+metadata:
+  namespace: blueargocd
+  name: blueclusterset
+spec:
+  clusterSet: blueclusterset
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: blue-placement
+  namespace: blueargocd
+spec:
+  clusterSets:
+    - blueclusterset
+---
+apiVersion: apps.open-cluster-management.io/v1beta1
+kind: GitOpsCluster
+metadata:
+  name: blue-gitops
+  namespace: blueargocd
+spec:
+  argoServer:
+    cluster: local-cluster
+    argoNamespace: blueargocd
+  placementRef:
+    kind: Placement
+    apiVersion: cluster.open-cluster-management.io/v1beta1
+    name: blue-placement
+    namespace: blueargocd

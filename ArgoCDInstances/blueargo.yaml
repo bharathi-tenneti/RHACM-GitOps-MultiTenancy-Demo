@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: blueargocd
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ArgoCD
+metadata:
+  name: blueargocd
+  namespace: blueargocd
+spec:
+  # This enables the application set controller
+  applicationSet: {}
+  # This enables the ArgoCD instance to use OpenShift OAuth
+  dex:
+    openShiftOAuth: true
+  server:
+    route:
+      enabled: true
