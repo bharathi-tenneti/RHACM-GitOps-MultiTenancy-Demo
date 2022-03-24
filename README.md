@@ -35,10 +35,16 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
     a. Add `blue-sre-group` group with `Cluster set admin` role. This grants `blue-sre-group` group admin access to `bluecluster1` and `bluecluster2` managed cluster namespaces on ACM hub. This also allows the group admin access to all resources that ACM finds from the remote managed clusters.
     b. Add `blue-viewer-group` group with `Cluster set view` role. This grants `blue-viewer-group` group view access to `bluecluster1` and `bluecluster2` managed cluster namespaces on ACM hub. This also allows the group view access to all resources that ACM finds from the remote managed clusters.
 
+![image](https://user-images.githubusercontent.com/41969005/160016083-83352c70-65d1-4de5-83a1-836e54c51d48.png)
+
+
 6. In `redclusterset` cluster set, go to `Access management` tab.
 
     a. Add `red-sre-group` group with `Cluster set admin` role. This grants `red-sre-group` group admin access to `redcluster` managed cluster namespace on ACM hub. This also allows the group admin access to all resources that ACM finds from the remote managed cluster.
     b. Add `red-viewer-group` group with `Cluster set view` role. This grants `red-viewer-group` group view access to `redcluster` managed cluster namespace on ACM hub. This also allows the group view access to all resources that ACM finds from the remote managed cluster.
+
+![image](https://user-images.githubusercontent.com/41969005/160016132-a00c1486-b3c3-4ab0-b30e-f306b3990511.png)
+
 
 7. Install `Red Hat OpenShift GitOps` operator and wait until all pods in `openshift-gitops` namespace are running.
 
