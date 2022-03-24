@@ -129,8 +129,16 @@ data:
     oc get route redargocd-server -n redargocd
 ```
 
+## Managed cluster registration verification in ArgoCD
 
-## Verifications
+Log into the blue and red ArgoCD consoles and create application to verify that the managed clusters are listed as application destination.
+
+![image](https://user-images.githubusercontent.com/41969005/160016710-38e17da1-f2b4-4400-86ff-ab0b4ed0bf5c.png)
+
+![image](https://user-images.githubusercontent.com/41969005/160016744-31b055ea-38ea-430d-8dab-3620bd96fd70.png)
+
+
+## RBAC Verifications
 
 Now everything is set up! Let's try to create some applications with different users and see what happens. The `./ApplicationSets/blueappset.yaml` creates an ApplicationSet that deploys `https://github.com/rokej/BlueApplications/tree/main/mobileApplication` application to those two remote blue clusters.
 
