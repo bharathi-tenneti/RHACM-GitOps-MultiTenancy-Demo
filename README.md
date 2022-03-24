@@ -183,4 +183,10 @@ There are two separate ArgoCD consoles `blueargocd` `redargocd` with RBAC from s
 ![image](https://user-images.githubusercontent.com/41969005/159999791-988724ca-17f2-452e-97b7-985058fce85c.png)
 
 
-### RHACM console multi-tenancy
+### Managing Argo applications from RHACM console
+
+You can create, view and edit application sets from RHACM console. Also you can launch into ArgoCD console from RHACM console to managed the application.
+
+![image](https://user-images.githubusercontent.com/41969005/160003338-7a5c7450-27fe-457d-b262-dc63643cfe6d.png)
+
+You can create, view and edit application sets from RHACM console. Also you can launch into ArgoCD console from RHACM console to managed the application.
