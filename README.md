@@ -7,6 +7,8 @@ This repo provides an exampl to configure cluster-as-a-service multi-tenancy mod
 ![image](https://user-images.githubusercontent.com/41969005/159989841-95b5dce8-b678-4cc1-8020-ae9d50a42089.png)
 
 
+Blue group of users and red group of users share the ACM hub cluster but have access to their own namespaces to manage and view their applications. Each group has separate set of managed clusters where applications are deployed to. ACM group of users has access to both groups' applications and all managed clusters. The application developers pushes application manifests to their Git repos but do not have access to the cluster environment. ACM, blue and red SRE group users can set up GitOps to deploy the applications from Git repos to clusters using OpenShift GitOps ApplicationSets.
+
 ## Cluster environment
 - ACM hub cluster
 - Three managed clusters: `bluecluster1`, `bluecluster2`, `redcluster`
