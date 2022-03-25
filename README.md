@@ -80,6 +80,11 @@ oc apply -f ./AcmPolicies/ArgoCDInstances
 oc apply -f ./AcmPolicies/RegisterClustersToArgoCDInstances
 ```
 
+These operator installation and instance creations are enforced by ACM governance policies.
+
+![image](https://user-images.githubusercontent.com/41969005/160182359-5abfad36-690b-4293-b72c-5bdffa825cd1.png)
+
+
 11. All blue applications are in `blueargocd` namespace.
 
     a. Grant `blue-sre-group` group admin access to `blueargocd` namespace. Log into OCP console and go to `User management` `Groups` `blue-sre-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `blue-sre-group`, namespace `blueargocd`, role name `admin`
