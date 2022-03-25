@@ -36,7 +36,7 @@ oc apply -f ./UsersGroups/groups.yaml
 
 3. Grant ACM groups cluster-wide access.
 
-    a. Grant `acm-sre-group` group admin access cluster-wide. Log into OCP console and go to `User management` `Groups` `acm-sre-group`. Go to `Role binding` tab and create a binding. Type `Cluster-wide role binding`, role binding name `acm-sre-group`, role name `admin`
+    a. Grant `acm-sre-group` group admin access cluster-wide. Log into OCP console and go to `User management` `Groups` `acm-sre-group`. Go to `Role binding` tab and create a binding. Type `Cluster-wide role binding`, role binding name `acm-sre-group`, role name `cluster-admin`
 
     b. Grant `acm-viewer-group` group view access cluster-wide. Log into OCP console and go to `User management` `Groups` `acm-viewer-group`. Go to `Role binding` tab and create a binding. Type `Cluster-wide role binding`, role binding name `acm-viewer-group`, role name `view`
 
