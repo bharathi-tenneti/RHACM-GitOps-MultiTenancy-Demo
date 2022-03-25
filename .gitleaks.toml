@@ -1,5 +1,5 @@
 [allowlist]
-description = "Allowlisted files"
+description = "The password file contains test users and password. No real passwords."
 files = [
     "./UsersGroups/htpasswd",
 ]
