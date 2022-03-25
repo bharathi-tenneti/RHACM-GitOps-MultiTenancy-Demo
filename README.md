@@ -74,24 +74,29 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
 
 **Note**: `Red Hat OpenShift GitOps` operator does not need to be installed on managed clusters because we are going to use `ApplicationSet` from the hub cluster to `push` applications to managed clusters. The ArgoCD server instance running on the hub cluster connects to target remote clusters to deploy applications defined in the `ApplicationSet`.
 
-10. All blue applications are in `blueargocd` namespace.
+10. Register `blueclusterset` cluster set to `blueargocd` ArgoCD instance so that ArgoCD can deploy applications to the clusters in `blueclusterset` cluster set. Register `redclusterset` cluster set to `redargocd` ArgoCD instance so that ArgoCD can deploy applications to the clusters in `redclusterset` cluster set.
+
+```
+    oc apply -f ./AcmPolicies/RegisterClustersToArgoCDInstances
+```
+
+11. All blue applications are in `blueargocd` namespace.
 
     a. Grant `blue-sre-group` group admin access to `blueargocd` namespace. Log into OCP console and go to `User management` `Groups` `blue-sre-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `blue-sre-group`, namespace `blueargocd`, role name `admin`
 
     b. Grant `blue-viewer-group` group view access to `blueargocd` namespace. Log into OCP console and go to `User management` `Groups` `blue-viewer-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `blue-viewer-group`, namespace `blueargocd`, role name `view`
 
-11. All red applications are in `redargocd` namespace.
+12. All red applications are in `redargocd` namespace.
 
     a. Grant `red-sre-group` group admin access to `redargocd` namespace. All blue applications are created in this namespace. Log into OCP console and go to `User management` `Groups` `red-sre-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `red-sre-group`, namespace `redargocd`, role name `admin`
 
     b. Grant `red-viewer-group` group view access to `redargocd` namespace. Log into OCP console and go to `User management` `Groups` `red-viewer-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `red-viewer-group`, namespace `redargocd`, role name `view`
 
-12. Edit the blue ArgoCD instance's RBAC to grant `blue-sre-group` `acm-sre-group` admin access and `blue-viewer-group` `acm-viewer-group` read-only access.
+13. Edit the blue ArgoCD instance's RBAC to grant `blue-sre-group` `acm-sre-group` admin access and `blue-viewer-group` `acm-viewer-group` read-only access.
 
 ```
     oc edit configmap argocd-rbac-cm -n blueargocd
 ```
-
 
 ```
 data:
@@ -104,7 +109,7 @@ data:
   scopes: '[groups]'
 ```
 
-13. Edit the red ArgoCD instance's RBAC to grant `red-sre-group` `acm-sre-group` admin access and `blue-viewer-group` `acm-viewer-group` read-only access.
+14. Edit the red ArgoCD instance's RBAC to grant `red-sre-group` `acm-sre-group` admin access and `blue-viewer-group` `acm-viewer-group` read-only access.
 
 ```
     oc edit configmap argocd-rbac-cm -n redargocd
@@ -121,19 +126,13 @@ data:
   scopes: '[groups]'
 ```
 
-14. Register `blueclusterset` cluster set to `blueargocd` ArgoCD instance so that ArgoCD can deploy applications to the clusters in `blueclusterset` cluster set. Register `redclusterset` cluster set to `redargocd` ArgoCD instance so that ArgoCD can deploy applications to the clusters in `redclusterset` cluster set.
-
-```
-    oc apply -f ./AcmPolicies/RegisterClustersToArgoCDInstances
-```
-
-15. Use the following command to find the blue ArgoCD console URL.
+15. Use the following command to find the blue ArgoCD console URL. Since OpenShift OAuth dex is enabled in ArgoCD instance, you can ACM or blue group users defined in OCP can log into this ArgoCD instance.
 
 ```
     oc get route blueargocd-server -n blueargocd
 ```
 
-16. Use the following command to find the blue ArgoCD console URL.
+16. Use the following command to find the blue ArgoCD console URL. Since OpenShift OAuth dex is enabled in ArgoCD instance, you can ACM or red group users defined in OCP can log into this ArgoCD instance.
 
 ```
     oc get route redargocd-server -n redargocd
