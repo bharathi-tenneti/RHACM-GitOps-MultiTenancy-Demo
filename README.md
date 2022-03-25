@@ -25,10 +25,10 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
 2. Log into ACM hub cluster via CLI and create blue, red and ACM SRE and viewer groups and users.
 
 ```
-    oc create secret generic htpass-secret --from-file=htpasswd=./UsersGroups/htpasswd -n openshift-config
-    oc apply -f ./UsersGroups/htpasswd.yaml
-    oc apply -f ./UsersGroups/users.yaml
-    oc apply -f ./UsersGroups/groups.yaml
+oc create secret generic htpass-secret --from-file=htpasswd=./UsersGroups/htpasswd -n openshift-config
+oc apply -f ./UsersGroups/htpasswd.yaml
+oc apply -f ./UsersGroups/users.yaml
+oc apply -f ./UsersGroups/groups.yaml
 ```
 
 ![image](https://user-images.githubusercontent.com/41969005/160040354-df18fd29-ff74-463f-b6b1-43045b404e2f.png)
@@ -63,13 +63,13 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
 8. Install `Red Hat OpenShift GitOps` operator and wait until all pods in `openshift-gitops` namespace are running.
 
 ```
-    oc apply -f ./AcmPolicies/InstallGitOpsOperator
+oc apply -f ./AcmPolicies/InstallGitOpsOperator
 ```
 
 9. Run the following command to create one ArgoCD server instance for the blue group in `blueargocd` namespace and another instance for the red group in `redargocd` namespace. Wait until all pods are running in `blueargocd` and `redargocd` namespaces. Also check that `applicationset-controller` and `dex-server` pods are running.
 
 ```
-    oc apply -f ./AcmPolicies/ArgoCDInstances
+oc apply -f ./AcmPolicies/ArgoCDInstances
 ```
 
 **Note**: `Red Hat OpenShift GitOps` operator does not need to be installed on managed clusters because we are going to use `ApplicationSet` from the hub cluster to `push` applications to managed clusters. The ArgoCD server instance running on the hub cluster connects to target remote clusters to deploy applications defined in the `ApplicationSet`.
@@ -77,7 +77,7 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
 10. Register `blueclusterset` cluster set to `blueargocd` ArgoCD instance so that ArgoCD can deploy applications to the clusters in `blueclusterset` cluster set. Register `redclusterset` cluster set to `redargocd` ArgoCD instance so that ArgoCD can deploy applications to the clusters in `redclusterset` cluster set.
 
 ```
-    oc apply -f ./AcmPolicies/RegisterClustersToArgoCDInstances
+oc apply -f ./AcmPolicies/RegisterClustersToArgoCDInstances
 ```
 
 11. All blue applications are in `blueargocd` namespace.
@@ -95,7 +95,7 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
 13. Edit the blue ArgoCD instance's RBAC to grant `blue-sre-group` `acm-sre-group` admin access and `blue-viewer-group` `acm-viewer-group` read-only access.
 
 ```
-    oc edit configmap argocd-rbac-cm -n blueargocd
+oc edit configmap argocd-rbac-cm -n blueargocd
 ```
 
 ```
@@ -112,7 +112,7 @@ data:
 14. Edit the red ArgoCD instance's RBAC to grant `red-sre-group` `acm-sre-group` admin access and `blue-viewer-group` `acm-viewer-group` read-only access.
 
 ```
-    oc edit configmap argocd-rbac-cm -n redargocd
+oc edit configmap argocd-rbac-cm -n redargocd
 ```
 
 ```
@@ -129,13 +129,13 @@ data:
 15. Use the following command to find the blue ArgoCD console URL. Since OpenShift OAuth dex is enabled in ArgoCD instance, you can ACM or blue group users defined in OCP can log into this ArgoCD instance.
 
 ```
-    oc get route blueargocd-server -n blueargocd
+oc get route blueargocd-server -n blueargocd
 ```
 
 16. Use the following command to find the blue ArgoCD console URL. Since OpenShift OAuth dex is enabled in ArgoCD instance, you can ACM or red group users defined in OCP can log into this ArgoCD instance.
 
 ```
-    oc get route redargocd-server -n redargocd
+oc get route redargocd-server -n redargocd
 ```
 
 **GitOpsification**: The above steps can be translated to manifest YAMLs with ArgoCD sync-wave and pushed to a Git repository. Then ACM-SRE user can use the default OpenShift GitOps operator (ArgoCD) instance in `openshift-gitops` namespace, which comes from the GitOps operator installation, to deploy the Git repo as an Argo application to the hub cluster.
