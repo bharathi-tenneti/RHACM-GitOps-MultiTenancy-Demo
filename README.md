@@ -58,6 +58,8 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
     oc apply -f ./ArgoCDInstances
 ```
 
+Note: `Red Hat OpenShift GitOps` operator does not need to be installed on managed clusters because we are going to use `ApplicationSet` from the hub cluster to `push` applications to managed clusters. The ArgoCD server instance running on the hub cluster connects to target remote clusters to deploy applications defined in the `ApplicationSet`.
+
 9. All blue applications are in `blueargocd` namespace.
 
     a. Grant `blue-sre-group` group admin access to `blueargocd` namespace. Log into OCP console and go to `User management` `Groups` `blue-sre-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `blue-sre-group`, namespace `blueargocd`, role name `admin`
