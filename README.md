@@ -170,7 +170,7 @@ Now everything is set up! Let's try to create some applications with different u
             cluster.open-cluster-management.io/placement: blue-placement
 ```
 
-This cluster decision section of the application set uses existing `blue-placement` that was created by step 14. When step 14 creates a `Placement` CR, the placement controller evaluates and creates a `PlacementDecision` CR with `cluster.open-cluster-management.io/placement: blue-placement` label. `PlacementDecision` contains a list of selected clusters.
+This cluster decision section of the application set uses existing `blue-placement` that was created by step 10. When step 10 creates a `Placement` CR, the placement controller evaluates and creates a `PlacementDecision` CR with `cluster.open-cluster-management.io/placement: blue-placement` label. `PlacementDecision` contains a list of selected clusters.
 
 
 ### As a viewer
@@ -207,9 +207,9 @@ The following screenshots depict that blue group users can see only blue applica
 ![image](https://user-images.githubusercontent.com/41969005/159999168-6a3afc06-ed09-4297-9b4b-7f6083d422b2.png)
 
 
-### Separate ArgoCD console
+### Separate ArgoCD consoles
 
-There are two separate ArgoCD consoles `blueargocd` `redargocd` with RBAC from step 12 and 13 so that one group cannot log into the other group's ArgoCD instance console to view or manage their applications.
+There are two separate ArgoCD consoles `blueargocd` `redargocd` with RBAC from step 9 so that one group cannot log into the other group's ArgoCD instance console to view or manage their applications.
 
 ![image](https://user-images.githubusercontent.com/41969005/159999747-dd55dda5-52e0-48dc-84ab-25a6f4b4772d.png)
 
