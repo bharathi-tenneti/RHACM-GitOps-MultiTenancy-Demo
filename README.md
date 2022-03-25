@@ -34,11 +34,17 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
 ![image](https://user-images.githubusercontent.com/41969005/160040354-df18fd29-ff74-463f-b6b1-43045b404e2f.png)
 
 
-3. Log into ACM console and create `blueclusterset` cluster set. Add `bluecluster1` and `bluecluster2` clusters to the cluster set.
+3. Grant ACM groups cluster-wide access.
 
-4. Create `redclusterset` cluster set. Add `redcluster` cluster to the cluster set.
+    a. Grant `acm-sre-group` group admin access cluster-wide. Log into OCP console and go to `User management` `Groups` `acm-sre-group`. Go to `Role binding` tab and create a binding. Type `Cluster-wide role binding`, role binding name `acm-sre-group`, role name `admin`
 
-5. In `blueclusterset` cluster set, go to `Access management` tab.
+    b. Grant `acm-viewer-group` group view access cluster-wide. Log into OCP console and go to `User management` `Groups` `acm-viewer-group`. Go to `Role binding` tab and create a binding. Type `Cluster-wide role binding`, role binding name `acm-viewer-group`, role name `view`
+
+4. Log into ACM console as an ACM SRE user and create `blueclusterset` cluster set. Add `bluecluster1` and `bluecluster2` clusters to the cluster set.
+
+5. Create `redclusterset` cluster set. Add `redcluster` cluster to the cluster set.
+
+6. In `blueclusterset` cluster set, go to `Access management` tab.
 
     a. Add `blue-sre-group` group with `Cluster set admin` role. This grants `blue-sre-group` group admin access to `bluecluster1` and `bluecluster2` managed cluster namespaces on ACM hub. This also allows the group admin access to all resources that ACM finds from the remote managed clusters.
     b. Add `blue-viewer-group` group with `Cluster set view` role. This grants `blue-viewer-group` group view access to `bluecluster1` and `bluecluster2` managed cluster namespaces on ACM hub. This also allows the group view access to all resources that ACM finds from the remote managed clusters.
@@ -46,7 +52,7 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
 ![image](https://user-images.githubusercontent.com/41969005/160016083-83352c70-65d1-4de5-83a1-836e54c51d48.png)
 
 
-6. In `redclusterset` cluster set, go to `Access management` tab.
+7. In `redclusterset` cluster set, go to `Access management` tab.
 
     a. Add `red-sre-group` group with `Cluster set admin` role. This grants `red-sre-group` group admin access to `redcluster` managed cluster namespace on ACM hub. This also allows the group admin access to all resources that ACM finds from the remote managed cluster.
     b. Add `red-viewer-group` group with `Cluster set view` role. This grants `red-viewer-group` group view access to `redcluster` managed cluster namespace on ACM hub. This also allows the group view access to all resources that ACM finds from the remote managed cluster.
@@ -54,37 +60,31 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
 ![image](https://user-images.githubusercontent.com/41969005/160016132-a00c1486-b3c3-4ab0-b30e-f306b3990511.png)
 
 
-7. Install `Red Hat OpenShift GitOps` operator and wait until all pods in `openshift-gitops` namespace are running.
+8. Install `Red Hat OpenShift GitOps` operator and wait until all pods in `openshift-gitops` namespace are running.
 
 ```
-    oc apply -f ./InstallGitOpsOperator
+    oc apply -f ./AcmPolicies/InstallGitOpsOperator
 ```
 
-8. Run the following command to create one ArgoCD server instance for the blue group in `blueargocd` namespace and another instance for the red group in `redargocd` namespace. Wait until all pods are running in `blueargocd` and `redargocd` namespaces. Also check that `applicationset-controller` and `dex-server` pods are running.
+9. Run the following command to create one ArgoCD server instance for the blue group in `blueargocd` namespace and another instance for the red group in `redargocd` namespace. Wait until all pods are running in `blueargocd` and `redargocd` namespaces. Also check that `applicationset-controller` and `dex-server` pods are running.
 
 ```
-    oc apply -f ./ArgoCDInstances
+    oc apply -f ./AcmPolicies/ArgoCDInstances
 ```
 
 **Note**: `Red Hat OpenShift GitOps` operator does not need to be installed on managed clusters because we are going to use `ApplicationSet` from the hub cluster to `push` applications to managed clusters. The ArgoCD server instance running on the hub cluster connects to target remote clusters to deploy applications defined in the `ApplicationSet`.
 
-9. All blue applications are in `blueargocd` namespace.
+10. All blue applications are in `blueargocd` namespace.
 
     a. Grant `blue-sre-group` group admin access to `blueargocd` namespace. Log into OCP console and go to `User management` `Groups` `blue-sre-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `blue-sre-group`, namespace `blueargocd`, role name `admin`
 
     b. Grant `blue-viewer-group` group view access to `blueargocd` namespace. Log into OCP console and go to `User management` `Groups` `blue-viewer-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `blue-viewer-group`, namespace `blueargocd`, role name `view`
 
-10. All red applications are in `redargocd` namespace.
+11. All red applications are in `redargocd` namespace.
 
     a. Grant `red-sre-group` group admin access to `redargocd` namespace. All blue applications are created in this namespace. Log into OCP console and go to `User management` `Groups` `red-sre-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `red-sre-group`, namespace `redargocd`, role name `admin`
 
     b. Grant `red-viewer-group` group view access to `redargocd` namespace. Log into OCP console and go to `User management` `Groups` `red-viewer-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `red-viewer-group`, namespace `redargocd`, role name `view`
-
-11. Grant ACM groups cluster-wide access.
-
-    a. Grant `acm-sre-group` group admin access cluster-wide. Log into OCP console and go to `User management` `Groups` `acm-sre-group`. Go to `Role binding` tab and create a binding. Type `Cluster-wide role binding`, role binding name `acm-sre-group`, role name `admin`
-
-    b. Grant `acm-viewer-group` group view access cluster-wide. Log into OCP console and go to `User management` `Groups` `acm-viewer-group`. Go to `Role binding` tab and create a binding. Type `Cluster-wide role binding`, role binding name `acm-viewer-group`, role name `view`
 
 12. Edit the blue ArgoCD instance's RBAC to grant `blue-sre-group` `acm-sre-group` admin access and `blue-viewer-group` `acm-viewer-group` read-only access.
 
@@ -124,7 +124,7 @@ data:
 14. Register `blueclusterset` cluster set to `blueargocd` ArgoCD instance so that ArgoCD can deploy applications to the clusters in `blueclusterset` cluster set. Register `redclusterset` cluster set to `redargocd` ArgoCD instance so that ArgoCD can deploy applications to the clusters in `redclusterset` cluster set.
 
 ```
-    oc apply -f ./RegisterClustersToArgoCDInstances
+    oc apply -f ./AcmPolicies/RegisterClustersToArgoCDInstances
 ```
 
 15. Use the following command to find the blue ArgoCD console URL.

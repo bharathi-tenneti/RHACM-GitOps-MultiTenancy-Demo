@@ -1,0 +1,63 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: blue-argocd-instance
+  namespace: acm-gitops-policy
+  annotations:
+    policy.open-cluster-management.io/standards: NIST-CSF
+    policy.open-cluster-management.io/categories: PR.DS Data Security
+    policy.open-cluster-management.io/controls: PR.DS-1 Data-at-rest
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: blue-argocd-instance
+        spec:
+          remediationAction: enforce
+          severity: medium
+          namespaceSelector:
+            exclude:
+              - kube-*
+            include:
+              - default
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: blueargocd
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: argoproj.io/v1alpha1
+                kind: ArgoCD
+                metadata:
+                  name: blueargocd
+                  namespace: blueargocd
+                spec:
+                  # This enables the application set controller
+                  applicationSet: {}
+                  # This enables the ArgoCD instance to use OpenShift OAuth
+                  dex:
+                    openShiftOAuth: true
+                  server:
+                    route:
+                      enabled: true
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: blue-argocd-instance
+  namespace: acm-gitops-policy
+placementRef:
+  name: acm-hub-cluster
+  kind: PlacementRule
+  apiGroup: apps.open-cluster-management.io
+subjects:
+  - name: blue-argocd-instance
+    kind: Policy
+    apiGroup: policy.open-cluster-management.io

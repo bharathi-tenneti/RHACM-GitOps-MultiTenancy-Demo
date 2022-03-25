@@ -1,0 +1,76 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: blue-gitopscluster
+  namespace: acm-gitops-policy
+  annotations:
+    policy.open-cluster-management.io/standards: NIST-CSF
+    policy.open-cluster-management.io/categories: PR.DS Data Security
+    policy.open-cluster-management.io/controls: PR.DS-1 Data-at-rest
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: blue-gitopscluster
+        spec:
+          remediationAction: enforce
+          severity: medium
+          namespaceSelector:
+            exclude:
+              - kube-*
+            include:
+              - default
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: cluster.open-cluster-management.io/v1beta1
+                kind: ManagedClusterSetBinding
+                metadata:
+                  namespace: blueargocd
+                  name: blueclusterset
+                spec:
+                  clusterSet: blueclusterset
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: cluster.open-cluster-management.io/v1beta1
+                kind: Placement
+                metadata:
+                  name: blue-placement
+                  namespace: blueargocd
+                spec:
+                  clusterSets:
+                    - blueclusterset
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: apps.open-cluster-management.io/v1beta1
+                kind: GitOpsCluster
+                metadata:
+                  name: blue-gitops
+                  namespace: blueargocd
+                spec:
+                  argoServer:
+                    cluster: local-cluster
+                    argoNamespace: blueargocd
+                  placementRef:
+                    kind: Placement
+                    apiVersion: cluster.open-cluster-management.io/v1beta1
+                    name: blue-placement
+                    namespace: blueargocd
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: blue-gitopscluster
+  namespace: acm-gitops-policy
+placementRef:
+  name: acm-hub-cluster
+  kind: PlacementRule
+  apiGroup: apps.open-cluster-management.io
+subjects:
+  - name: blue-gitopscluster
+    kind: Policy
+    apiGroup: policy.open-cluster-management.io
