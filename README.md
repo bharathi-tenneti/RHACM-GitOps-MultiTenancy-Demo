@@ -13,6 +13,11 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
 - ACM hub cluster
 - Three managed clusters: `bluecluster1`, `bluecluster2`, `redcluster`
 
+
+![image](https://user-images.githubusercontent.com/41969005/160040406-bf5e9b3c-ebe9-4e6c-82fa-0fde1071bd03.png)
+
+
+
 ## Steps to create multi-tenancy GitOps environment for blue, red and ACM user groups
 
 1. Clone this repo.
@@ -26,7 +31,8 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
     oc apply -f ./UsersGroups/groups.yaml
 ```
 
-![image](https://user-images.githubusercontent.com/41969005/160038766-11f99a55-9dc2-4c56-afd6-88fc57f641e1.png)
+![image](https://user-images.githubusercontent.com/41969005/160040354-df18fd29-ff74-463f-b6b1-43045b404e2f.png)
+
 
 3. Log into ACM console and create `blueclusterset` cluster set. Add `bluecluster1` and `bluecluster2` clusters to the cluster set.
 
