@@ -131,6 +131,8 @@ data:
     oc get route redargocd-server -n redargocd
 ```
 
+**GitOpsification**: The above steps can be translated to manifest YAMLs with ArgoCD sync-wave and pushed to a Git repository. Then ACM-SRE user can use the default OpenShift GitOps operator (ArgoCD) instance in `openshift-gitops` namespace, which comes from the GitOps operator installation, to deploy the Git repo as an Argo application to the hub cluster.
+
 ## Managed cluster registration verification in ArgoCD
 
 Log into the blue and red ArgoCD consoles and create application to verify that the managed clusters are listed as application destination.
