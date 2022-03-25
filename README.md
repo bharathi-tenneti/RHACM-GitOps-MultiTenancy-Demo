@@ -26,6 +26,8 @@ Blue group of users and red group of users share the ACM hub cluster but have ac
     oc apply -f ./UsersGroups/groups.yaml
 ```
 
+![image](https://user-images.githubusercontent.com/41969005/160038766-11f99a55-9dc2-4c56-afd6-88fc57f641e1.png)
+
 3. Log into ACM console and create `blueclusterset` cluster set. Add `bluecluster1` and `bluecluster2` clusters to the cluster set.
 
 4. Create `redclusterset` cluster set. Add `redcluster` cluster to the cluster set.
