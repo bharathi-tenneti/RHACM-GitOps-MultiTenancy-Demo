@@ -199,12 +199,17 @@ from server for: "ApplicationSets/redappset.yaml": applicationsets.argoproj.io "
 
 ### RHACM console multi-tenancy
 
-The following screenshots depict that blue group users can see only blue applications and red group users can see only red applications.
+The following screenshots shows that blue group users can visualize and manage only blue applications 
 
 ![image](https://user-images.githubusercontent.com/41969005/159999028-df152f14-bc68-4720-8506-7ae2abfc2beb.png)
 
+and red group users can visualize and manage only red applications
 
 ![image](https://user-images.githubusercontent.com/41969005/159999168-6a3afc06-ed09-4297-9b4b-7f6083d422b2.png)
+
+while ACM group users can visualize and manage all applications.
+
+![image](https://user-images.githubusercontent.com/41969005/160201485-fbe71180-2762-473e-ba47-84f17bb343ef.png)
 
 
 ### Separate ArgoCD consoles
