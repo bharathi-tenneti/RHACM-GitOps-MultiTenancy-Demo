@@ -110,7 +110,7 @@ data:
     g, acm-viewer-group, role:readonly
     g, blue-sre-group, role:admin
     g, blue-viewer-group, role:readonly
-  policy.default: role:readonly
+  policy.default: role:''
   scopes: '[groups]'
 ```
 
@@ -127,7 +127,7 @@ data:
     g, acm-viewer-group, role:readonly
     g, red-sre-group, role:admin
     g, red-viewer-group, role:readonly
-  policy.default: role:readonly
+  policy.default: role:''
   scopes: '[groups]'
 ```
 
