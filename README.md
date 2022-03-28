@@ -1,6 +1,6 @@
 # Multi-tenancy model example with Red Hat Advanced Cluster Management and OpenShift GitOps operator
 
-This repo provides an exampl to configure cluster-as-a-service multi-tenancy model using Red Hat Advanced Cluster Management and OpenShift GitOps operator.
+This repo provides an example to configure cluster-as-a-service multi-tenancy model using Red Hat Advanced Cluster Management and OpenShift GitOps operator.
 
 
 
