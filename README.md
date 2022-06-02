@@ -114,7 +114,7 @@ data:
   scopes: '[groups]'
 ```
 
-14. Edit the red ArgoCD instance's RBAC to grant `red-sre-group` `acm-sre-group` admin access and `blue-viewer-group` `acm-viewer-group` read-only access.
+14. Edit the red ArgoCD instance's RBAC to grant `red-sre-group` `acm-sre-group` admin access and `red-viewer-group` `acm-viewer-group` read-only access.
 
 ```
 oc edit configmap argocd-rbac-cm -n redargocd
