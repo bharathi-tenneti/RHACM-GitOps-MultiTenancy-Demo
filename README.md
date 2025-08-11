@@ -74,10 +74,38 @@ oc apply -f ./AcmPolicies/ArgoCDInstances
 
 **Note**: `Red Hat OpenShift GitOps` operator does not need to be installed on managed clusters because we are going to use `ApplicationSet` from the hub cluster to `push` applications to managed clusters. The ArgoCD server instance running on the hub cluster connects to target remote clusters to deploy applications defined in the `ApplicationSet`.
 
+## ApplicationSet Improvements
+
+This project has been updated to use the more reliable `clusters` generator instead of the previous `clusterDecisionResource` approach:
+
+### Benefits of the New Approach:
+- ✅ **More Reliable**: Direct cluster selection using ManagedClusterSets
+- ✅ **Simplified RBAC**: Reduced dependency on PlacementDecision resources  
+- ✅ **Automatic Local Cluster Exclusion**: Only targets managed clusters in the specified clusterset
+- ✅ **Better Performance**: Fewer resource dependencies and faster cluster discovery
+- ✅ **Future-Proof**: Uses the recommended approach for RHACM + GitOps integration
+
+### Updated ApplicationSet Structure:
+```yaml
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            argocd.argoproj.io/secret-type: cluster
+            cluster.open-cluster-management.io/clusterset: blueclusterset
+```
+
 10. Register `blueclusterset` cluster set to `blueargocd` ArgoCD instance so that ArgoCD can deploy applications to the clusters in `blueclusterset` cluster set. Register `redclusterset` cluster set to `redargocd` ArgoCD instance so that ArgoCD can deploy applications to the clusters in `redclusterset` cluster set.
 
 ```
 oc apply -f ./AcmPolicies/RegisterClustersToArgoCDInstances
+```
+
+**Note**: The ApplicationSet controllers require additional RBAC permissions to access ManagedClusterSet resources. Apply the RBAC fix:
+
+```
+oc apply -f ./AcmPolicies/ApplicationSetRBAC/applicationset-rbac-fix.yaml
 ```
 
 These operator installation and instance creations are enforced by ACM governance policies.
@@ -159,18 +187,18 @@ Log into the blue and red ArgoCD consoles and create application to verify that 
 
 ## RBAC Verifications
 
-Now everything is set up! Let's try to create some applications with different users and see what happens. The `./ApplicationSets/blueappset.yaml` creates an ApplicationSet that deploys `https://github.com/rokej/BlueApplications/tree/main/mobileApplication` application to those two remote blue clusters.
-
+Now everything is set up! Let's try to create some applications with different users and see what happens. The `./ApplicationSets/blueMobileAppset.yaml` creates an ApplicationSet that deploys `https://github.com/rokej/BlueApplications/tree/main/mobileApplication` application to those two remote blue clusters.
 
 ```
-    - clusterDecisionResource:
-        configMapRef: acm-placement
-        labelSelector:
+  generators:
+    - clusters:
+        selector:
           matchLabels:
-            cluster.open-cluster-management.io/placement: blue-placement
+            argocd.argoproj.io/secret-type: cluster
+            cluster.open-cluster-management.io/clusterset: blueclusterset
 ```
 
-This cluster decision section of the application set uses existing `blue-placement` that was created by step 10. When step 10 creates a `Placement` CR, the placement controller evaluates and creates a `PlacementDecision` CR with `cluster.open-cluster-management.io/placement: blue-placement` label. `PlacementDecision` contains a list of selected clusters.
+This cluster selector section of the application set uses the `clusters` generator to target clusters that are part of the `blueclusterset` ManagedClusterSet. This approach is more reliable than the previous `clusterDecisionResource` method and automatically excludes the local cluster.
 
 
 ### As a viewer
@@ -178,23 +206,23 @@ This cluster decision section of the application set uses existing `blue-placeme
 If `oc apply -f ./ApplicationSets` to try to create application sets to deploy applications, you should see errors like below because viewers have read-only view access to the application namespace `blueargocd` or `redargocd`.
 
 ```
-Error from server (Forbidden): error when creating "ApplicationSets/blueappset.yaml": applicationsets.argoproj.io is forbidden: User "blueviewer1" cannot create resource "applicationsets" in API group "argoproj.io" in the namespace "blueargocd"
+Error from server (Forbidden): error when creating "ApplicationSets/blueMobileAppset.yaml": applicationsets.argoproj.io is forbidden: User "blueviewer1" cannot create resource "applicationsets" in API group "argoproj.io" in the namespace "blueargocd"
 Error from server (Forbidden): error when retrieving current configuration of:
 Resource: "argoproj.io/v1alpha1, Resource=applicationsets", GroupVersionKind: "argoproj.io/v1alpha1, Kind=ApplicationSet"
 Name: "galaga-application-set", Namespace: "redargocd"
-from server for: "ApplicationSets/redappset.yaml": applicationsets.argoproj.io "galaga-application-set" is forbidden: User "blueviewer1" cannot get resource "applicationsets" in API group "argoproj.io" in the namespace "redargocd"
+from server for: "ApplicationSets/redGalagaAppset.yaml": applicationsets.argoproj.io "galaga-application-set" is forbidden: User "blueviewer1" cannot get resource "applicationsets" in API group "argoproj.io" in the namespace "redargocd"
 ```
 
 ### As a blue SRE user
 
-If `oc apply -f ./ApplicationSets` to try to create application sets to deploy applications, you should see output like below because the bluw SRE user has admin access to `blueargocd` applicaiton namespace but no access to `redargocd` application namespace.
+If `oc apply -f ./ApplicationSets` to try to create application sets to deploy applications, you should see output like below because the blue SRE user has admin access to `blueargocd` application namespace but no access to `redargocd` application namespace.
 
 ```
 applicationset.argoproj.io/mobile-application-set created
 Error from server (Forbidden): error when retrieving current configuration of:
 Resource: "argoproj.io/v1alpha1, Resource=applicationsets", GroupVersionKind: "argoproj.io/v1alpha1, Kind=ApplicationSet"
 Name: "galaga-application-set", Namespace: "redargocd"
-from server for: "ApplicationSets/redappset.yaml": applicationsets.argoproj.io "galaga-application-set" is forbidden: User "bluesre1" cannot get resource "applicationsets" in API group "argoproj.io" in the namespace "redargocd"
+from server for: "ApplicationSets/redGalagaAppset.yaml": applicationsets.argoproj.io "galaga-application-set" is forbidden: User "bluesre1" cannot get resource "applicationsets" in API group "argoproj.io" in the namespace "redargocd"
 ```
 
 ### RHACM console multi-tenancy

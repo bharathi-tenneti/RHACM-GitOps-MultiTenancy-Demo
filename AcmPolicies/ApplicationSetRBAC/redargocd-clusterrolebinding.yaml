@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: redargocd-applicationset-placement-reader
+  labels:
+    app.kubernetes.io/component: applicationset
+    app.kubernetes.io/name: argocd-applicationset
+    app.kubernetes.io/part-of: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: applicationset-placement-reader
+subjects:
+- kind: ServiceAccount
+  name: redargocd-applicationset-controller
+  namespace: redargocd

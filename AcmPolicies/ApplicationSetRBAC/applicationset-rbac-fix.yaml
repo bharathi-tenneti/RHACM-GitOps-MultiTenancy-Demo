@@ -1,0 +1,60 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: applicationset-placement-reader
+  labels:
+    app.kubernetes.io/component: applicationset
+    app.kubernetes.io/name: argocd-applicationset
+    app.kubernetes.io/part-of: argocd
+rules:
+- apiGroups:
+  - cluster.open-cluster-management.io
+  resources:
+  - placementdecisions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: blueargocd-applicationset-placement-reader
+  labels:
+    app.kubernetes.io/component: applicationset
+    app.kubernetes.io/name: argocd-applicationset
+    app.kubernetes.io/part-of: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: applicationset-placement-reader
+subjects:
+- kind: ServiceAccount
+  name: blueargocd-applicationset-controller
+  namespace: blueargocd
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: redargocd-applicationset-placement-reader
+  labels:
+    app.kubernetes.io/component: applicationset
+    app.kubernetes.io/name: argocd-applicationset
+    app.kubernetes.io/part-of: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: applicationset-placement-reader
+subjects:
+- kind: ServiceAccount
+  name: redargocd-applicationset-controller
+  namespace: redargocd
