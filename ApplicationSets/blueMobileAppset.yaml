@@ -5,20 +5,21 @@ metadata:
   namespace: blueargocd
 spec:
   generators:
-    - clusterDecisionResource:
-        configMapRef: acm-placement
-        labelSelector:
+    - clusters:
+        selector:
           matchLabels:
-            cluster.open-cluster-management.io/placement: blue-placement
-        requeueAfterSeconds: 180
+            argocd.argoproj.io/secret-type: cluster
+            cluster.open-cluster-management.io/clusterset: blueclusterset
+        values:
+          revision: main
   template:
     metadata:
       name: mobileapp-{{name}}
     spec:
-      project: mobileapp
+      project: default
       source:
         repoURL: https://github.com/rokej/BlueApplications.git
-        targetRevision: main
+        targetRevision: "{{values.revision}}"
         path: mobileApplication
       destination:
         namespace: mobileapp

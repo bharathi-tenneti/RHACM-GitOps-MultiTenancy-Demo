@@ -30,8 +30,8 @@ spec:
                 apiVersion: cluster.open-cluster-management.io/v1beta2
                 kind: ManagedClusterSetBinding
                 metadata:
-                  namespace: blueargocd
                   name: blueclusterset
+                  namespace: blueargocd
                 spec:
                   clusterSet: blueclusterset
             - complianceType: musthave
@@ -56,22 +56,35 @@ spec:
                     cluster: local-cluster
                     argoNamespace: blueargocd
                   placementRef:
-                    kind: Placement
-                    apiVersion: cluster.open-cluster-management.io/v1beta1
                     name: blue-placement
                     namespace: blueargocd
+                    kind: Placement
+                    apiVersion: cluster.open-cluster-management.io/v1beta1
+---
+apiVersion: apps.open-cluster-management.io/v1
+kind: PlacementRule
+metadata:
+  name: blue-gitopscluster-placement
+  namespace: acm-gitops-policy
+spec:
+  clusterSelector:
+    matchExpressions:
+      - key: cluster.open-cluster-management.io/clusterset
+        operator: In
+        values:
+          - default
+  clusterConditions: []
 ---
 apiVersion: policy.open-cluster-management.io/v1
 kind: PlacementBinding
 metadata:
-  name: blue-gitopscluster
+  name: blue-gitopscluster-placement
   namespace: acm-gitops-policy
 placementRef:
-  name: acm-hub-cluster
+  name: blue-gitopscluster-placement
   kind: PlacementRule
   apiGroup: apps.open-cluster-management.io
 subjects:
   - name: blue-gitopscluster
     kind: Policy
     apiGroup: policy.open-cluster-management.io
-

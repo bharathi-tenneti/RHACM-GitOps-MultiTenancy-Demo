@@ -1,28 +1,28 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: galaga-application-set
-  namespace: redargocd
+  name: mobile-application-set-fixed
+  namespace: blueargocd
 spec:
   generators:
     - clusters:
         selector:
           matchLabels:
             argocd.argoproj.io/secret-type: cluster
-            cluster.open-cluster-management.io/clusterset: redclusterset
+            cluster.open-cluster-management.io/clusterset: blueclusterset
         values:
           revision: main
   template:
     metadata:
-      name: galaga-{{name}}
+      name: mobileapp-{{name}}
     spec:
       project: default
       source:
-        repoURL: https://github.com/rokej/RedApplications.git
+        repoURL: https://github.com/rokej/BlueApplications.git
         targetRevision: "{{values.revision}}"
-        path: galaga
+        path: mobileApplication
       destination:
-        namespace: galaga
+        namespace: mobileapp
         server: "{{server}}"
       syncPolicy:
         syncOptions:

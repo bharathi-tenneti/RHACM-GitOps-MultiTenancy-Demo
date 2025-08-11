@@ -27,11 +27,11 @@ spec:
           object-templates:
             - complianceType: musthave
               objectDefinition:
-                apiVersion: cluster.open-cluster-management.io/v1beta1
+                apiVersion: cluster.open-cluster-management.io/v1beta2
                 kind: ManagedClusterSetBinding
                 metadata:
-                  namespace: redargocd
                   name: redclusterset
+                  namespace: redargocd
                 spec:
                   clusterSet: redclusterset
             - complianceType: musthave
@@ -56,18 +56,32 @@ spec:
                     cluster: local-cluster
                     argoNamespace: redargocd
                   placementRef:
-                    kind: Placement
-                    apiVersion: cluster.open-cluster-management.io/v1beta1
                     name: red-placement
                     namespace: redargocd
+                    kind: Placement
+                    apiVersion: cluster.open-cluster-management.io/v1beta1
+---
+apiVersion: apps.open-cluster-management.io/v1
+kind: PlacementRule
+metadata:
+  name: red-gitopscluster-placement
+  namespace: acm-gitops-policy
+spec:
+  clusterSelector:
+    matchExpressions:
+      - key: cluster.open-cluster-management.io/clusterset
+        operator: In
+        values:
+          - default
+  clusterConditions: []
 ---
 apiVersion: policy.open-cluster-management.io/v1
 kind: PlacementBinding
 metadata:
-  name: red-gitopscluster
+  name: red-gitopscluster-placement
   namespace: acm-gitops-policy
 placementRef:
-  name: acm-hub-cluster
+  name: red-gitopscluster-placement
   kind: PlacementRule
   apiGroup: apps.open-cluster-management.io
 subjects:
