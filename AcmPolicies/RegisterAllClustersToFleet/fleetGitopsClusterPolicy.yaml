@@ -1,0 +1,85 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: fleet-gitopscluster
+  namespace: acm-gitops-policy
+  annotations:
+    policy.open-cluster-management.io/standards: NIST-CSF
+    policy.open-cluster-management.io/categories: PR.DS Data Security
+    policy.open-cluster-management.io/controls: PR.DS-1 Data-at-rest
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: fleet-gitopscluster
+        spec:
+          remediationAction: enforce
+          severity: medium
+          namespaceSelector:
+            exclude:
+              - kube-*
+            include:
+              - default
+          object-templates:
+            # Bind the built-in 'global' ManagedClusterSet to the openshift-gitops namespace.
+            # The 'global' set is automatically maintained by ACM and contains every managed cluster.
+            # No ManagedClusterSet CR needs to be created — only this binding is required.
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: cluster.open-cluster-management.io/v1beta2
+                kind: ManagedClusterSetBinding
+                metadata:
+                  name: global
+                  namespace: openshift-gitops
+                spec:
+                  clusterSet: global
+            # Placement selects all clusters from the global set.
+            # Add predicates here to scope the fleet (e.g. matchLabels: vendor: OpenShift)
+            # if you need to exclude non-OpenShift clusters.
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: cluster.open-cluster-management.io/v1beta1
+                kind: Placement
+                metadata:
+                  name: fleet-placement
+                  namespace: openshift-gitops
+                spec:
+                  clusterSets:
+                    - global
+            # GitOpsCluster wires the Placement to the fleet ArgoCD Principal in openshift-gitops.
+            # ACM will generate a cluster Secret for each PlacementDecision so that ArgoCD
+            # can target those clusters without storing hub-side credentials.
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: apps.open-cluster-management.io/v1beta1
+                kind: GitOpsCluster
+                metadata:
+                  name: fleet-gitops
+                  namespace: openshift-gitops
+                spec:
+                  argoServer:
+                    cluster: local-cluster
+                    argoNamespace: openshift-gitops
+                  placementRef:
+                    kind: Placement
+                    apiVersion: cluster.open-cluster-management.io/v1beta1
+                    name: fleet-placement
+                    namespace: openshift-gitops
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: fleet-gitopscluster
+  namespace: acm-gitops-policy
+placementRef:
+  name: acm-hub-cluster
+  kind: PlacementRule
+  apiGroup: apps.open-cluster-management.io
+subjects:
+  - name: fleet-gitopscluster
+    kind: Policy
+    apiGroup: policy.open-cluster-management.io

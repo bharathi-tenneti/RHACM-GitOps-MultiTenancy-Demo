@@ -1,0 +1,74 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: fleet-argocd-principal
+  namespace: acm-gitops-policy
+  annotations:
+    policy.open-cluster-management.io/standards: NIST-CSF
+    policy.open-cluster-management.io/categories: PR.DS Data Security
+    policy.open-cluster-management.io/controls: PR.DS-1 Data-at-rest
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: fleet-argocd-principal
+        spec:
+          remediationAction: enforce
+          severity: medium
+          namespaceSelector:
+            exclude:
+              - kube-*
+            include:
+              - default
+          object-templates:
+            # The fleet Principal lives in the openshift-gitops namespace so that ACM's
+            # GitOpsCluster integration can register clusters to it using argoNamespace: openshift-gitops.
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: argoproj.io/v1beta1
+                kind: ArgoCD
+                metadata:
+                  name: fleet-argocd-principal
+                  namespace: openshift-gitops
+                spec:
+                  # Principal does not run a local app reconciler — agents on spokes do.
+                  controller:
+                    enabled: false
+                  argoCDAgent:
+                    principal:
+                      enabled: true
+                      logLevel: "info"
+                      # Extract agent identity from mTLS leaf cert CN.
+                      auth: "mtls:CN=([^,]+)"
+                      tls:
+                        # insecureGenerate auto-provisions a self-signed root CA.
+                        # Replace with secretName pointing to a proper CA Secret in production.
+                        insecureGenerate: true
+                  # Accept Application resources pushed by agents from this namespace on each spoke.
+                  sourceNamespaces:
+                    - argocd-agent
+                  server:
+                    route:
+                      enabled: true
+                  # Expose the gRPC endpoint that agents dial back to.
+                  applicationSet: {}
+                  dex:
+                    openShiftOAuth: true
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: fleet-argocd-principal
+  namespace: acm-gitops-policy
+placementRef:
+  name: acm-hub-cluster
+  kind: PlacementRule
+  apiGroup: apps.open-cluster-management.io
+subjects:
+  - name: fleet-argocd-principal
+    kind: Policy
+    apiGroup: policy.open-cluster-management.io
