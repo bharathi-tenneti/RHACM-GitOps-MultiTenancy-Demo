@@ -285,10 +285,10 @@ All patterns in this demo are based on official Red Hat product documentation.
 | Topic | Link |
 |---|---|
 | RHACM documentation home | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes |
-| Governance — ACM Policies | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.13/html/governance/governance |
-| ManagedClusterSet | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.13/html/clusters/cluster_mce_overview#managedclusterset-intro |
-| Placement | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.13/html/clusters/cluster_mce_overview#placement-intro |
-| Registering managed clusters to ArgoCD (GitOpsCluster) | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.13/html/gitops/gitops-register |
+| Governance — ACM Policies | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.15/html/governance/governance |
+| ManagedClusterSet | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.15/html/clusters/cluster_mce_overview#managedclusterset-intro |
+| Placement | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.15/html/clusters/cluster_mce_overview#placement-intro |
+| Registering managed clusters to ArgoCD (GitOpsCluster) | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.15/html/gitops/gitops-register |
 
 ### OpenShift GitOps (ArgoCD)
 
@@ -299,4 +299,4 @@ All patterns in this demo are based on official Red Hat product documentation.
 | ArgoCD instance (ArgoCD CR) | https://docs.openshift.com/gitops/latest/argocd_instance/setting-up-argocd-instance.html |
 | ApplicationSet — Cluster Decision Resource generator | https://docs.openshift.com/gitops/latest/applicationset/applicationset-getting-started.html |
 
-> **Note:** Replace `2.13` in RHACM URLs with your installed version (`oc get csv -n open-cluster-management` to check).
+> **Note:** Replace `2.15` in RHACM URLs with your installed version (`oc get csv -n open-cluster-management` to check).
