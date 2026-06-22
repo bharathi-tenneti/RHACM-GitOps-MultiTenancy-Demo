@@ -256,11 +256,23 @@ data:
 
 ## RBAC verification
 
-![image](https://user-images.githubusercontent.com/41969005/159999028-df152f14-bc68-4720-8506-7ae2abfc2beb.png)
+### fleet-argocd — platform admin single pane of glass
 
-![image](https://user-images.githubusercontent.com/41969005/159999168-6a3afc06-ed09-4297-9b4b-7f6083d422b2.png)
+`acmsre1` logs into `fleet-argocd-server` and sees all 5 applications across all clusters and both tenant projects:
 
-![image](https://user-images.githubusercontent.com/41969005/160201485-fbe71180-2762-473e-ba47-84f17bb343ef.png)
+![fleet-argocd all apps](docs/screenshots/fleet-argocd-all-apps.png)
+
+### blueargocd — blue team isolated view
+
+`bluesre1` logs into `blueargocd-server` and sees only `mobileapp-cluster1` (blue-team project):
+
+![blueargocd tenant view](docs/screenshots/blueargocd-tenant-view.png)
+
+### redargocd — red team isolated view
+
+`redsre1` logs into `redargocd-server` and sees only `galaga-cluster2` (red-team project):
+
+![redargocd tenant view](docs/screenshots/redargocd-tenant-view.png)
 
 ---
 
