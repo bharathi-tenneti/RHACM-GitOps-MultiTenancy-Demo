@@ -3,3 +3,4 @@ kind: Kustomization
 
 resources:
   - fleetGitopsClusterPolicy.yaml
+  - fleetAppSetRbac.yaml

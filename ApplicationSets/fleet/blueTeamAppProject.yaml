@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: blue-team
+  namespace: fleet-gitops
+spec:
+  description: Blue team tenant applications — scoped to blueclusterset clusters
+  sourceRepos:
+    - '*'
+  destinations:
+    - namespace: '*'
+      server: '*'
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  roles:
+    - name: admin
+      description: Blue team admin — full control over blue-team applications
+      policies:
+        - p, proj:blue-team:admin, applications, *, blue-team/*, allow
+      groups:
+        - blue-sre-group
+    - name: readonly
+      description: Blue team readonly — view blue-team applications only
+      policies:
+        - p, proj:blue-team:readonly, applications, get, blue-team/*, allow
+      groups:
+        - blue-viewer-group

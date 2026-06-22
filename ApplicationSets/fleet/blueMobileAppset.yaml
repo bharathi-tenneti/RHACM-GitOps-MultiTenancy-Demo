@@ -1,27 +1,27 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: galaga-application-set
-  namespace: redargocd
+  name: mobile-application-set
+  namespace: fleet-gitops
 spec:
   generators:
     - clusterDecisionResource:
         configMapRef: acm-placement
         labelSelector:
           matchLabels:
-            cluster.open-cluster-management.io/placement: red-placement
+            cluster.open-cluster-management.io/placement: blue-placement
         requeueAfterSeconds: 180
   template:
     metadata:
-      name: galaga-{{name}}
+      name: mobileapp-{{name}}
     spec:
-      project: default
+      project: blue-team
       source:
-        repoURL: https://github.com/rokej/RedApplications.git
+        repoURL: https://github.com/rokej/BlueApplications.git
         targetRevision: main
-        path: galaga
+        path: mobileApplication
       destination:
-        namespace: galaga
+        namespace: mobileapp
         server: "{{server}}"
       syncPolicy:
         syncOptions:

@@ -25,39 +25,26 @@ spec:
             include:
               - default
           object-templates:
-            # The fleet Principal lives in the openshift-gitops namespace so that ACM's
-            # GitOpsCluster integration can register clusters to it using argoNamespace: openshift-gitops.
             - complianceType: musthave
               objectDefinition:
-                apiVersion: argoproj.io/v1beta1
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: fleet-gitops
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: argoproj.io/v1alpha1
                 kind: ArgoCD
                 metadata:
-                  name: fleet-argocd-principal
-                  namespace: openshift-gitops
+                  name: fleet-argocd
+                  namespace: fleet-gitops
                 spec:
-                  # Principal does not run a local app reconciler — agents on spokes do.
-                  controller:
-                    enabled: false
-                  argoCDAgent:
-                    principal:
-                      enabled: true
-                      logLevel: "info"
-                      # Extract agent identity from mTLS leaf cert CN.
-                      auth: "mtls:CN=([^,]+)"
-                      tls:
-                        # insecureGenerate auto-provisions a self-signed root CA.
-                        # Replace with secretName pointing to a proper CA Secret in production.
-                        insecureGenerate: true
-                  # Accept Application resources pushed by agents from this namespace on each spoke.
-                  sourceNamespaces:
-                    - argocd-agent
-                  server:
-                    route:
-                      enabled: true
-                  # Expose the gRPC endpoint that agents dial back to.
                   applicationSet: {}
                   dex:
                     openShiftOAuth: true
+                  server:
+                    route:
+                      enabled: true
 ---
 apiVersion: policy.open-cluster-management.io/v1
 kind: PlacementBinding

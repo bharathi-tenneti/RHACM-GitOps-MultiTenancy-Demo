@@ -1,127 +1,145 @@
-# Multi-tenancy model example with Red Hat Advanced Cluster Management and OpenShift GitOps operator
+# RHACM GitOps Multi-Tenancy Demo
 
-This repo provides an example to configure cluster-as-a-service multi-tenancy model using Red Hat Advanced Cluster Management and OpenShift GitOps operator. It extends the per-tenant isolation model with a **fleet-wide GitOps control plane** using the ArgoCD Agent architecture, enabling centralised visibility and platform delivery across all managed clusters.
+Fleet-wide GitOps using Red Hat Advanced Cluster Management and OpenShift GitOps. A single `fleet-argocd` instance on the hub delivers platform config and all tenant applications across all clusters. ArgoCD AppProjects provide tenant isolation — each team sees only their own applications. Platform admins have a single pane of glass.
 
 ![image](https://user-images.githubusercontent.com/41969005/159989841-95b5dce8-b678-4cc1-8020-ae9d50a42089.png)
 
-Blue group of users and red group of users share the ACM hub cluster but have access to their own namespaces to manage and view their applications. Each group has separate set of managed clusters where applications are deployed to. ACM group of users has access to both groups' applications and all managed clusters. The application developers pushes application manifests to their Git repos but do not have access to the cluster environment. ACM, blue and red SRE group users can set up GitOps to deploy the applications from Git repos to clusters using OpenShift GitOps ApplicationSets.
+## Prerequisites
 
-## Cluster environment
-- ACM hub cluster
-- Three managed clusters: `bluecluster1`, `bluecluster2`, `redcluster`
+- 1 OpenShift hub cluster with RHACM installed
+- Managed clusters imported into ACM and assigned to ClusterSets
+- OpenShift GitOps operator **≥ 1.10** on hub
 
-![image](https://user-images.githubusercontent.com/41969005/160040406-bf5e9b3c-ebe9-4e6c-82fa-0fde1071bd03.png)
+## Architecture
+
+```
+fleet-argocd (fleet-gitops namespace on hub)
+├── AppProject: default    → platform-baseline → all clusters        (acm-sre-group: admin)
+├── AppProject: blue-team  → mobile-app         → blueclusterset     (blue-sre-group: admin)
+└── AppProject: red-team   → galaga              → redclusterset      (red-sre-group: admin)
+
+ACM GitOpsCluster + Placements register all clusters to fleet-argocd:
+  fleet-placement  → global ManagedClusterSet (all clusters)
+  blue-placement   → blueclusterset only
+  red-placement    → redclusterset only
+```
 
 ## Repository structure
 
 ```
 .
-├── kustomization.yaml                          # Root — apply entire repo with: kubectl apply -k .
+├── kustomization.yaml                         # Hub resources (UsersGroups + AcmPolicies)
 ├── AcmPolicies/
-│   ├── kustomization.yaml                      # Aggregates all policy subdirectories
-│   ├── InstallGitOpsOperator/                  # ACM Policy: install OpenShift GitOps operator on hub
-│   ├── ArgoCDInstances/                        # ACM Policy: per-tenant ArgoCD instances (blue, red)
-│   ├── RegisterClustersToArgoCDInstances/      # ACM Policy: register tenant cluster sets to ArgoCD
-│   ├── FleetArgoCD/                            # ACM Policy: fleet-wide ArgoCD Principal + Agent
-│   └── RegisterAllClustersToFleet/             # ACM Policy: register all clusters to fleet ArgoCD
+│   ├── InstallGitOpsOperator/                 # Install GitOps operator on hub
+│   ├── ArgoCDInstances/                       # Per-tenant ArgoCD instances (blueargocd, redargocd)
+│   ├── RegisterClustersToArgoCDInstances/     # Register tenant ClusterSets to per-tenant ArgoCD
+│   ├── FleetArgoCD/                           # fleet-argocd instance in fleet-gitops namespace
+│   └── RegisterAllClustersToFleet/            # Register all clusters to fleet-argocd via GitOpsCluster
 ├── ApplicationSets/
-│   ├── blueMobileAppset.yaml                   # Blue tenant app (mobile) → bluecluster1, bluecluster2
-│   ├── redGalagaAppset.yaml                    # Red tenant app (galaga) → redcluster
-│   └── fleetPlatformAppset.yaml                # Fleet platform infra → all managed clusters
-├── PlatformConfig/
-│   └── baseline/                               # Kustomize base: LimitRange + NetworkPolicy defaults
-└── UsersGroups/                                # Users, Groups, HTPasswd OAuth config
+│   └── fleet/
+│       ├── fleetPlatformAppset.yaml           # Platform baseline → all clusters (default project)
+│       ├── blueMobileAppset.yaml              # Mobile app → blueclusterset (blue-team project)
+│       ├── redGalagaAppset.yaml               # Galaga → redclusterset (red-team project)
+│       ├── blueTeamAppProject.yaml            # AppProject: blue-team
+│       └── redTeamAppProject.yaml             # AppProject: red-team
+├── PlatformConfig/baseline/                   # Deployed by fleet-argocd to spokes (not applied to hub)
+└── UsersGroups/                               # Users, Groups, HTPasswd OAuth config
 ```
-
-Every directory contains a `kustomization.yaml`, so individual layers or the full repo can be rendered with `kubectl kustomize <path>` or applied with `kubectl apply -k <path>`.
 
 ---
 
-## Part 1 — Per-tenant multi-tenancy setup (Blue & Red)
+## Setup steps
 
-### Steps to create multi-tenancy GitOps environment for blue, red and ACM user groups
-
-1. Clone this repo.
-
-2. Log into ACM hub cluster via CLI and create blue, red and ACM SRE and viewer groups and users.
+### Step 1 — Create users and groups on the hub
 
 ```bash
-oc create secret generic htpass-secret --from-file=htpasswd=./UsersGroups/htpasswd -n openshift-config
-kubectl apply -k ./UsersGroups
+oc create secret generic htpass-secret \
+  --from-file=htpasswd=./UsersGroups/htpasswd \
+  -n openshift-config
+
+oc apply -k ./UsersGroups
 ```
 
-![image](https://user-images.githubusercontent.com/41969005/160040354-df18fd29-ff74-463f-b6b1-43045b404e2f.png)
-
-3. Grant ACM groups cluster-wide access.
-
-    a. Grant `acm-sre-group` group admin access cluster-wide. Log into OCP console and go to `User management` > `Groups` > `acm-sre-group`. Go to `Role binding` tab and create a binding. Type `Cluster-wide role binding`, role binding name `acm-sre-group`, role name `cluster-admin`
-
-    b. Grant `acm-viewer-group` group view access cluster-wide. Log into OCP console and go to `User management` > `Groups` > `acm-viewer-group`. Go to `Role binding` tab and create a binding. Type `Cluster-wide role binding`, role binding name `acm-viewer-group`, role name `view`
-
-4. Log into ACM console as an ACM SRE user and create `blueclusterset` cluster set. Add `bluecluster1` and `bluecluster2` clusters to the cluster set.
-
-5. Create `redclusterset` cluster set. Add `redcluster` cluster to the cluster set.
-
-6. In `blueclusterset` cluster set, go to `Access management` tab.
-
-    a. Add `blue-sre-group` group with `Cluster set admin` role. This grants `blue-sre-group` group admin access to `bluecluster1` and `bluecluster2` managed cluster namespaces on ACM hub. This also allows the group admin access to all resources that ACM finds from the remote managed clusters.
-    b. Add `blue-viewer-group` group with `Cluster set view` role. This grants `blue-viewer-group` group view access to `bluecluster1` and `bluecluster2` managed cluster namespaces on ACM hub. This also allows the group view access to all resources that ACM finds from the remote managed clusters.
-
-![image](https://user-images.githubusercontent.com/41969005/160016083-83352c70-65d1-4de5-83a1-836e54c51d48.png)
-
-7. In `redclusterset` cluster set, go to `Access management` tab.
-
-    a. Add `red-sre-group` group with `Cluster set admin` role. This grants `red-sre-group` group admin access to `redcluster` managed cluster namespace on ACM hub. This also allows the group admin access to all resources that ACM finds from the remote managed cluster.
-    b. Add `red-viewer-group` group with `Cluster set view` role. This grants `red-viewer-group` group view access to `redcluster` managed cluster namespace on ACM hub. This also allows the group view access to all resources that ACM finds from the remote managed cluster.
-
-![image](https://user-images.githubusercontent.com/41969005/160016132-a00c1486-b3c3-4ab0-b30e-f306b3990511.png)
-
-8. Install `Red Hat OpenShift GitOps` operator and wait until all pods in `openshift-gitops` namespace are running.
+### Step 2 — Grant ACM group cluster-wide RBAC
 
 ```bash
-kubectl apply -k ./AcmPolicies/InstallGitOpsOperator
+oc adm policy add-cluster-role-to-group cluster-admin acm-sre-group
+oc adm policy add-cluster-role-to-group view acm-viewer-group
 ```
 
-9. Create one ArgoCD server instance for the blue group in `blueargocd` namespace and another for the red group in `redargocd` namespace. Wait until all pods are running and `applicationset-controller` and `dex-server` pods are present.
+### Step 3 — Create ClusterSets, assign clusters, and grant group access
+
+Create the ClusterSets:
 
 ```bash
-kubectl apply -k ./AcmPolicies/ArgoCDInstances
+oc apply -f - <<'EOF'
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSet
+metadata:
+  name: blueclusterset
+---
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSet
+metadata:
+  name: redclusterset
+EOF
 ```
 
-> **Note:** `Red Hat OpenShift GitOps` operator does not need to be installed on managed clusters. The ArgoCD server instance running on the hub cluster connects to target remote clusters to deploy applications defined in the `ApplicationSet`.
-
-10. Register cluster sets to their ArgoCD instances.
+Assign your managed clusters to the correct ClusterSet (replace names with your actual cluster names):
 
 ```bash
-kubectl apply -k ./AcmPolicies/RegisterClustersToArgoCDInstances
+oc label managedcluster <blue-cluster-1> cluster.open-cluster-management.io/clusterset=blueclusterset
+oc label managedcluster <red-cluster-1>  cluster.open-cluster-management.io/clusterset=redclusterset
 ```
 
-These operator installation and instance creations are enforced by ACM governance policies.
+Grant group access to each ClusterSet:
 
-![image](https://user-images.githubusercontent.com/41969005/160182359-5abfad36-690b-4293-b72c-5bdffa825cd1.png)
+```bash
+oc adm policy add-cluster-role-to-group open-cluster-management:managedclusterset:admin:blueclusterset blue-sre-group
+oc adm policy add-cluster-role-to-group open-cluster-management:managedclusterset:view:blueclusterset  blue-viewer-group
+oc adm policy add-cluster-role-to-group open-cluster-management:managedclusterset:admin:redclusterset  red-sre-group
+oc adm policy add-cluster-role-to-group open-cluster-management:managedclusterset:view:redclusterset   red-viewer-group
+```
 
-11. All blue applications are in `blueargocd` namespace.
+### Step 4 — Install GitOps operator on hub
 
-    a. Grant `blue-sre-group` admin access to `blueargocd` namespace. Log into OCP console and go to `User management` > `Groups` > `blue-sre-group`. Go to `Role binding` tab and create a binding. Type `Namespace role binding`, role binding name `blue-sre-group`, namespace `blueargocd`, role name `admin`
+```bash
+oc apply -k ./AcmPolicies/InstallGitOpsOperator
+```
 
-    b. Grant `blue-viewer-group` view access to `blueargocd` namespace. Same path, role name `view`.
+Wait until all pods in `openshift-gitops` are `Running`:
 
-12. All red applications are in `redargocd` namespace.
+```bash
+oc get pods -n openshift-gitops
+```
 
-    a. Grant `red-sre-group` admin access to `redargocd` namespace. Same path, role name `admin`.
+### Step 5 — Create per-tenant ArgoCD instances (optional — for direct tenant access)
 
-    b. Grant `red-viewer-group` view access to `redargocd` namespace. Same path, role name `view`.
+These create isolated `blueargocd` and `redargocd` instances that tenant teams can use directly. They are separate from `fleet-argocd` and are not required for the fleet single-pane-of-glass setup.
 
-13. Edit the blue ArgoCD instance's RBAC:
+```bash
+oc apply -k ./AcmPolicies/ArgoCDInstances
+oc apply -k ./AcmPolicies/RegisterClustersToArgoCDInstances
+```
+
+### Step 6 — Grant tenant group namespace RBAC on per-tenant instances
+
+```bash
+oc adm policy add-role-to-group admin blue-sre-group    -n blueargocd
+oc adm policy add-role-to-group view  blue-viewer-group  -n blueargocd
+oc adm policy add-role-to-group admin red-sre-group     -n redargocd
+oc adm policy add-role-to-group view  red-viewer-group   -n redargocd
+```
+
+### Step 7 — Configure per-tenant ArgoCD RBAC
 
 ```bash
 oc edit configmap argocd-rbac-cm -n blueargocd
 ```
-
 ```yaml
 data:
   policy.csv: |
-    g, acm-sre-group, role:admin
+    g, acm-sre-group, role:readonly
     g, acm-viewer-group, role:readonly
     g, blue-sre-group, role:admin
     g, blue-viewer-group, role:readonly
@@ -129,16 +147,13 @@ data:
   scopes: '[groups]'
 ```
 
-14. Edit the red ArgoCD instance's RBAC:
-
 ```bash
 oc edit configmap argocd-rbac-cm -n redargocd
 ```
-
 ```yaml
 data:
   policy.csv: |
-    g, acm-sre-group, role:admin
+    g, acm-sre-group, role:readonly
     g, acm-viewer-group, role:readonly
     g, red-sre-group, role:admin
     g, red-viewer-group, role:readonly
@@ -146,191 +161,130 @@ data:
   scopes: '[groups]'
 ```
 
-15. Find the blue ArgoCD console URL (OpenShift OAuth via Dex is enabled — ACM and blue group users can log in):
+---
+
+## Fleet-wide setup (Part 2)
+
+Creates `fleet-argocd` in `fleet-gitops` on the hub. ACM registers all clusters to it via `GitOpsCluster`. AppProjects scope tenant teams to their own applications. Platform admins see everything from one ArgoCD URL.
+
+### Step 8 — Create fleet ArgoCD instance
 
 ```bash
-oc get route blueargocd-server -n blueargocd
+oc apply -k ./AcmPolicies/FleetArgoCD
 ```
 
-16. Find the red ArgoCD console URL:
+Wait for all pods to be `Running`:
 
 ```bash
-oc get route redargocd-server -n redargocd
+oc get pods -n fleet-gitops
 ```
 
-> **GitOpsification:** The above steps can be translated to manifest YAMLs with ArgoCD sync-wave and pushed to a Git repository. The ACM-SRE user can then use the default `openshift-gitops` ArgoCD instance to deploy the Git repo as an Argo application to the hub cluster.
+### Step 9 — Register all clusters to fleet ArgoCD
 
-![image](https://user-images.githubusercontent.com/41969005/160181938-0bf0f746-706f-471e-9cf0-8b1aa762782f.png)
+```bash
+oc apply -k ./AcmPolicies/RegisterAllClustersToFleet
+```
+
+Verify PlacementDecisions exist for all three placements:
+
+```bash
+oc get placementdecision -n fleet-gitops
+```
+
+### Step 10 — Deploy AppProjects and all ApplicationSets
+
+```bash
+oc apply -k ./ApplicationSets/fleet
+```
+
+This creates in `fleet-gitops`:
+- AppProject `blue-team` — scopes `blue-sre-group` to mobile-app applications only
+- AppProject `red-team` — scopes `red-sre-group` to galaga applications only
+- `fleet-platform-appset` — delivers platform baseline to all clusters
+- `mobile-application-set` — delivers mobile app to blueclusterset clusters
+- `galaga-application-set` — delivers galaga to redclusterset clusters
+
+Verify:
+
+```bash
+oc get applicationset -n fleet-gitops
+oc get applications.argoproj.io -n fleet-gitops
+```
+
+Expected Applications:
+
+```
+NAME                              SYNC STATUS   HEALTH STATUS
+platform-baseline-cluster1        Synced        Healthy
+platform-baseline-local-cluster   Synced        Healthy
+mobileapp-<blue-cluster>          Synced        Healthy
+galaga-<red-cluster>              Synced        Healthy
+```
+
+Get the fleet ArgoCD console URL:
+
+```bash
+oc get route fleet-argocd-server -n fleet-gitops
+```
+
+### Step 11 — Configure fleet ArgoCD RBAC
+
+Platform admins see everything. Tenant team scoping is handled by the AppProject specs — only platform admin access needs to be set here.
+
+```bash
+oc edit configmap argocd-rbac-cm -n fleet-gitops
+```
+
+```yaml
+data:
+  policy.csv: |
+    g, acm-sre-group, role:admin
+    g, acm-viewer-group, role:readonly
+  policy.default: role:''
+  scopes: '[groups]'
+```
+
+**Access summary:**
+
+| User | Sees in fleet-argocd |
+|---|---|
+| `acmsre1` (acm-sre-group) | All applications across all clusters |
+| `bluesre1` (blue-sre-group) | `mobileapp-*` applications only |
+| `redsre1` (red-sre-group) | `galaga-*` applications only |
 
 ---
 
-## Part 2 — Fleet-wide GitOps with ArgoCD Agent architecture
-
-This section extends the per-tenant setup with a fleet-wide control plane based on the [ArgoCD Agent architecture](https://medium.com/@tcij1013/fleet-scale-gitops-control-flow-with-red-hat-advanced-cluster-management-0eca855136c3). Instead of a single hub ArgoCD reconciling all clusters directly (which creates a hub bottleneck at scale), this model places a lightweight **Agent** on each spoke that pulls specs from a hub **Principal** over outbound mTLS gRPC — eliminating inbound API exposure and hub-stored spoke credentials.
-
-```
-Hub cluster (openshift-gitops namespace)
-  └── ArgoCD Principal (fleet-argocd-principal)
-        ├── No local reconciler (controller.enabled: false)
-        ├── Aggregates sync status from all Agents
-        └── Exposes fleet-wide UI + gRPC endpoint
-
-Each spoke cluster (argocd-agent namespace)
-  └── ArgoCD Agent (argocd-agent)
-        ├── No UI (server.enabled: false)
-        ├── Dials Principal via mTLS gRPC (outbound only)
-        └── Reconciles Applications locally, streams status back
-```
-
-### Prerequisites
-
-- Red Hat OpenShift GitOps operator **≥ 1.10** (required for `argoproj.io/v1beta1` and the `argoCDAgent` spec field)
-- Steps 1–10 from Part 1 completed
-
-### Step 17 — Install GitOps operator on all spoke clusters and deploy the fleet ArgoCD Principal
-
-The ArgoCD Agent runs as an ArgoCD CR on each spoke, so the GitOps operator must be present there before the Agent policy is applied. `fleetGitOpsOperatorPolicy.yaml` handles this automatically — it reuses the `all-managed-clusters` PlacementRule and enforces the same GitOps operator Subscription on every spoke.
-
-Apply all three fleet policies together (operator install → Principal → Agent):
-
-```bash
-kubectl apply -k ./AcmPolicies/FleetArgoCD
-```
-
-Wait for `fleet-gitops-operator-install` to show `Compliant` on all spokes before proceeding, then retrieve the Principal's gRPC/UI route:
-
-```bash
-oc get route fleet-argocd-principal-server -n openshift-gitops -o jsonpath='{.spec.host}'
-```
-
-### Step 18 — Update the Agent policy with the Principal address
-
-Open `AcmPolicies/FleetArgoCD/fleetArgoCDAgentPolicy.yaml` and replace the placeholder in the `address:` field with the hostname from the previous step:
-
-```yaml
-address: "<output-from-step-17>:443"
-```
-
-This is the one manual step in the deployment — the Principal must exist before Agents can dial it. In production, use an ACM hub template to auto-populate this value:
-
-```yaml
-address: "{{hub (lookup \"v1\" \"Route\" \"openshift-gitops\" \"fleet-argocd-principal-server\").spec.host hub}}:443"
-```
-
-### Step 19 — Register all clusters to the fleet ArgoCD
-
-```bash
-kubectl apply -k ./AcmPolicies/RegisterAllClustersToFleet
-```
-
-This policy creates:
-- A `ManagedClusterSetBinding` for the built-in `global` cluster set (contains all managed clusters automatically) in `openshift-gitops`
-- A `fleet-placement` Placement selecting all clusters
-- A `GitOpsCluster` resource wiring the Placement to the `openshift-gitops` ArgoCD namespace
-
-Verify the PlacementDecision lists all clusters:
-
-```bash
-oc get placementdecision -n openshift-gitops
-```
-
-### Step 20 — Deploy platform infra to the entire fleet
-
-```bash
-kubectl apply -f ./ApplicationSets/fleetPlatformAppset.yaml
-```
-
-The `fleet-platform-appset` ApplicationSet reads `fleet-placement` decisions and deploys `PlatformConfig/baseline` (default LimitRanges and NetworkPolicies) to every cluster. ArgoCD automatically uses Kustomize to render the baseline directory because a `kustomization.yaml` is present.
-
-Verify one Application per cluster was created:
-
-```bash
-oc get application -n openshift-gitops
-```
-
-### Fleet ArgoCD console
-
-```bash
-oc get route fleet-argocd-principal-server -n openshift-gitops
-```
-
-Open the route in a browser. ACM SRE users can log in via OpenShift OAuth and see sync status for all clusters in a single view.
-
-### Extending `PlatformConfig/baseline`
-
-`PlatformConfig/baseline/kustomization.yaml` is a standard Kustomize base. Add cluster-wide defaults here (e.g. `ResourceQuota`, `PodDisruptionBudget`, admission webhooks). The fleet ApplicationSet will automatically deliver any new resources to all clusters on the next sync.
-
----
-
-## Managed cluster registration verification in ArgoCD
-
-Log into the blue and red ArgoCD consoles and create an application to verify that the managed clusters are listed as application destinations.
-
-![image](https://user-images.githubusercontent.com/41969005/160016710-38e17da1-f2b4-4400-86ff-ab0b4ed0bf5c.png)
-
-![image](https://user-images.githubusercontent.com/41969005/160016744-31b055ea-38ea-430d-8dab-3620bd96fd70.png)
-
-## RBAC Verifications
-
-Now everything is set up. The `ApplicationSets/blueMobileAppset.yaml` deploys `https://github.com/rokej/BlueApplications/tree/main/mobileApplication` to both remote blue clusters using the `blue-placement` PlacementDecision:
-
-```yaml
-- clusterDecisionResource:
-    configMapRef: acm-placement
-    labelSelector:
-      matchLabels:
-        cluster.open-cluster-management.io/placement: blue-placement
-```
-
-### As a viewer
-
-```bash
-kubectl apply -k ./ApplicationSets
-```
-
-Expected output — viewers have read-only access to application namespaces:
-
-```
-Error from server (Forbidden): error when creating "ApplicationSets/blueMobileAppset.yaml": applicationsets.argoproj.io is forbidden: User "blueviewer1" cannot create resource "applicationsets" in API group "argoproj.io" in the namespace "blueargocd"
-```
-
-### As a blue SRE user
-
-```bash
-kubectl apply -k ./ApplicationSets
-```
-
-Expected output — blue SRE has admin access to `blueargocd` but not `redargocd`:
-
-```
-applicationset.argoproj.io/mobile-application-set created
-Error from server (Forbidden): ...applicationsets.argoproj.io "galaga-application-set" is forbidden: User "bluesre1" cannot get resource "applicationsets" in API group "argoproj.io" in the namespace "redargocd"
-```
-
-### RHACM console multi-tenancy
-
-Blue group users can visualise and manage only blue applications:
+## RBAC verification
 
 ![image](https://user-images.githubusercontent.com/41969005/159999028-df152f14-bc68-4720-8506-7ae2abfc2beb.png)
 
-Red group users can visualise and manage only red applications:
-
 ![image](https://user-images.githubusercontent.com/41969005/159999168-6a3afc06-ed09-4297-9b4b-7f6083d422b2.png)
-
-ACM group users can visualise and manage all applications:
 
 ![image](https://user-images.githubusercontent.com/41969005/160201485-fbe71180-2762-473e-ba47-84f17bb343ef.png)
 
-### Separate ArgoCD consoles
+---
 
-There are two separate ArgoCD consoles — `blueargocd` and `redargocd` — with RBAC configured in steps 13–14, so one group cannot log into the other group's instance.
+## References
 
-![image](https://user-images.githubusercontent.com/41969005/159999747-dd55dda5-52e0-48dc-84ab-25a6f4b4772d.png)
+All patterns in this demo are based on official Red Hat product documentation.
 
-![image](https://user-images.githubusercontent.com/41969005/159999791-988724ca-17f2-452e-97b7-985058fce85c.png)
+### Red Hat Advanced Cluster Management (RHACM)
 
-### Managing Argo applications from RHACM console
+| Topic | Link |
+|---|---|
+| RHACM documentation home | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes |
+| Governance — ACM Policies | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.13/html/governance/governance |
+| ManagedClusterSet | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.13/html/clusters/cluster_mce_overview#managedclusterset-intro |
+| Placement | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.13/html/clusters/cluster_mce_overview#placement-intro |
+| Registering managed clusters to ArgoCD (GitOpsCluster) | https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.13/html/gitops/gitops-register |
 
-You can create, view and edit application sets from the RHACM console and launch directly into an ArgoCD console to manage the application.
+### OpenShift GitOps (ArgoCD)
 
-![image](https://user-images.githubusercontent.com/41969005/160003338-7a5c7450-27fe-457d-b262-dc63643cfe6d.png)
+| Topic | Link |
+|---|---|
+| OpenShift GitOps documentation home | https://docs.openshift.com/gitops/latest/understanding_openshift_gitops/about-redhat-openshift-gitops.html |
+| Installing OpenShift GitOps | https://docs.openshift.com/gitops/latest/installing_gitops/installing-openshift-gitops.html |
+| ArgoCD instance (ArgoCD CR) | https://docs.openshift.com/gitops/latest/argocd_instance/setting-up-argocd-instance.html |
+| ApplicationSet — Cluster Decision Resource generator | https://docs.openshift.com/gitops/latest/applicationset/applicationset-getting-started.html |
+
+> **Note:** Replace `2.13` in RHACM URLs with your installed version (`oc get csv -n open-cluster-management` to check).

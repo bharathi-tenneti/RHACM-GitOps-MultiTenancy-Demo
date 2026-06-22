@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: red-team
+  namespace: fleet-gitops
+spec:
+  description: Red team tenant applications — scoped to redclusterset clusters
+  sourceRepos:
+    - '*'
+  destinations:
+    - namespace: '*'
+      server: '*'
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  roles:
+    - name: admin
+      description: Red team admin — full control over red-team applications
+      policies:
+        - p, proj:red-team:admin, applications, *, red-team/*, allow
+      groups:
+        - red-sre-group
+    - name: readonly
+      description: Red team readonly — view red-team applications only
+      policies:
+        - p, proj:red-team:readonly, applications, get, red-team/*, allow
+      groups:
+        - red-viewer-group

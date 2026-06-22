@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: fleet-platform-appset
-  namespace: openshift-gitops
+  namespace: fleet-gitops
 spec:
   generators:
     - clusterDecisionResource:
@@ -18,7 +18,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/bharathi-tenneti/RHACM-GitOps-MultiTenancy-Demo.git
-        targetRevision: main
+        targetRevision: fleetdev
         path: PlatformConfig/baseline
       destination:
         namespace: platform-config
