@@ -55,58 +55,7 @@ spec:
                         labelSelector:
                           matchLabels:
                             vendor: OpenShift
-            # Bind blueclusterset and redclusterset to fleet-gitops so their Placements work here.
-            - complianceType: musthave
-              objectDefinition:
-                apiVersion: cluster.open-cluster-management.io/v1beta2
-                kind: ManagedClusterSetBinding
-                metadata:
-                  name: blueclusterset
-                  namespace: fleet-gitops
-                spec:
-                  clusterSet: blueclusterset
-            - complianceType: musthave
-              objectDefinition:
-                apiVersion: cluster.open-cluster-management.io/v1beta2
-                kind: ManagedClusterSetBinding
-                metadata:
-                  name: redclusterset
-                  namespace: fleet-gitops
-                spec:
-                  clusterSet: redclusterset
-            # Placement targeting only blueclusterset — used by the blue team ApplicationSet generator.
-            - complianceType: musthave
-              objectDefinition:
-                apiVersion: cluster.open-cluster-management.io/v1beta1
-                kind: Placement
-                metadata:
-                  name: blue-placement
-                  namespace: fleet-gitops
-                spec:
-                  clusterSets:
-                    - blueclusterset
-                  predicates:
-                    - requiredClusterSelector:
-                        labelSelector:
-                          matchLabels:
-                            vendor: OpenShift
-            # Placement targeting only redclusterset — used by the red team ApplicationSet generator.
-            - complianceType: musthave
-              objectDefinition:
-                apiVersion: cluster.open-cluster-management.io/v1beta1
-                kind: Placement
-                metadata:
-                  name: red-placement
-                  namespace: fleet-gitops
-                spec:
-                  clusterSets:
-                    - redclusterset
-                  predicates:
-                    - requiredClusterSelector:
-                        labelSelector:
-                          matchLabels:
-                            vendor: OpenShift
-            # GitOpsCluster wires the Placement to the fleet ArgoCD Principal in fleet-gitops.
+            # GitOpsCluster wires the Placement to the fleet ArgoCD in fleet-gitops.
             # ACM will generate a cluster Secret for each PlacementDecision so that ArgoCD
             # can target those clusters without storing hub-side credentials.
             - complianceType: musthave

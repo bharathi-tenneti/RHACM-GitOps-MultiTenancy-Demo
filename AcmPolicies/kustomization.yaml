@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - InstallGitOpsOperator
-  - ArgoCDInstances
-  - RegisterClustersToArgoCDInstances
   - FleetArgoCD
   - RegisterAllClustersToFleet
+  - ClusterSets/blueclusterset
+  - ClusterSets/redclusterset

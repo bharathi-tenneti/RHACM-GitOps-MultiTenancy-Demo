@@ -1,7 +1,7 @@
 apiVersion: policy.open-cluster-management.io/v1
 kind: Policy
 metadata:
-  name: blue-gitopscluster
+  name: red-gitopscluster
   namespace: acm-gitops-policy
   annotations:
     policy.open-cluster-management.io/standards: NIST-CSF
@@ -15,7 +15,7 @@ spec:
         apiVersion: policy.open-cluster-management.io/v1
         kind: ConfigurationPolicy
         metadata:
-          name: blue-gitopscluster
+          name: red-gitopscluster
         spec:
           remediationAction: enforce
           severity: medium
@@ -25,53 +25,44 @@ spec:
             include:
               - default
           object-templates:
+            # Bind redclusterset to fleet-gitops so red-placement can be used here.
+            # fleet-argocd already has cluster secrets for all clusters via fleet-placement/global.
+            # red-placement is used only as a label selector by the red team ApplicationSet generator.
             - complianceType: musthave
               objectDefinition:
                 apiVersion: cluster.open-cluster-management.io/v1beta2
                 kind: ManagedClusterSetBinding
                 metadata:
-                  namespace: blueargocd
-                  name: blueclusterset
+                  name: redclusterset
+                  namespace: fleet-gitops
                 spec:
-                  clusterSet: blueclusterset
+                  clusterSet: redclusterset
             - complianceType: musthave
               objectDefinition:
                 apiVersion: cluster.open-cluster-management.io/v1beta1
                 kind: Placement
                 metadata:
-                  name: blue-placement
-                  namespace: blueargocd
+                  name: red-placement
+                  namespace: fleet-gitops
                 spec:
                   clusterSets:
-                    - blueclusterset
-            - complianceType: musthave
-              objectDefinition:
-                apiVersion: apps.open-cluster-management.io/v1beta1
-                kind: GitOpsCluster
-                metadata:
-                  name: blue-gitops
-                  namespace: blueargocd
-                spec:
-                  argoServer:
-                    cluster: local-cluster
-                    argoNamespace: blueargocd
-                  placementRef:
-                    kind: Placement
-                    apiVersion: cluster.open-cluster-management.io/v1beta1
-                    name: blue-placement
-                    namespace: blueargocd
+                    - redclusterset
+                  predicates:
+                    - requiredClusterSelector:
+                        labelSelector:
+                          matchLabels:
+                            vendor: OpenShift
 ---
 apiVersion: policy.open-cluster-management.io/v1
 kind: PlacementBinding
 metadata:
-  name: blue-gitopscluster
+  name: red-gitopscluster
   namespace: acm-gitops-policy
 placementRef:
   name: acm-hub-cluster
   kind: PlacementRule
   apiGroup: apps.open-cluster-management.io
 subjects:
-  - name: blue-gitopscluster
+  - name: red-gitopscluster
     kind: Policy
     apiGroup: policy.open-cluster-management.io
-

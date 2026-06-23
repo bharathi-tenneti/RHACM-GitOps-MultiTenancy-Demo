@@ -1,7 +1,7 @@
 apiVersion: policy.open-cluster-management.io/v1
 kind: Policy
 metadata:
-  name: blue-argocd-instance
+  name: blue-gitopscluster
   namespace: acm-gitops-policy
   annotations:
     policy.open-cluster-management.io/standards: NIST-CSF
@@ -15,7 +15,7 @@ spec:
         apiVersion: policy.open-cluster-management.io/v1
         kind: ConfigurationPolicy
         metadata:
-          name: blue-argocd-instance
+          name: blue-gitopscluster
         spec:
           remediationAction: enforce
           severity: medium
@@ -25,39 +25,44 @@ spec:
             include:
               - default
           object-templates:
+            # Bind blueclusterset to fleet-gitops so blue-placement can be used here.
+            # fleet-argocd already has cluster secrets for all clusters via fleet-placement/global.
+            # blue-placement is used only as a label selector by the blue team ApplicationSet generator.
             - complianceType: musthave
               objectDefinition:
-                apiVersion: v1
-                kind: Namespace
+                apiVersion: cluster.open-cluster-management.io/v1beta2
+                kind: ManagedClusterSetBinding
                 metadata:
-                  name: blueargocd
-            - complianceType: musthave
-              objectDefinition:
-                apiVersion: argoproj.io/v1alpha1
-                kind: ArgoCD
-                metadata:
-                  name: blueargocd
-                  namespace: blueargocd
+                  name: blueclusterset
+                  namespace: fleet-gitops
                 spec:
-                  # This enables the application set controller
-                  applicationSet: {}
-                  # This enables the ArgoCD instance to use OpenShift OAuth
-                  dex:
-                    openShiftOAuth: true
-                  server:
-                    route:
-                      enabled: true
+                  clusterSet: blueclusterset
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: cluster.open-cluster-management.io/v1beta1
+                kind: Placement
+                metadata:
+                  name: blue-placement
+                  namespace: fleet-gitops
+                spec:
+                  clusterSets:
+                    - blueclusterset
+                  predicates:
+                    - requiredClusterSelector:
+                        labelSelector:
+                          matchLabels:
+                            vendor: OpenShift
 ---
 apiVersion: policy.open-cluster-management.io/v1
 kind: PlacementBinding
 metadata:
-  name: blue-argocd-instance
+  name: blue-gitopscluster
   namespace: acm-gitops-policy
 placementRef:
   name: acm-hub-cluster
   kind: PlacementRule
   apiGroup: apps.open-cluster-management.io
 subjects:
-  - name: blue-argocd-instance
+  - name: blue-gitopscluster
     kind: Policy
     apiGroup: policy.open-cluster-management.io
